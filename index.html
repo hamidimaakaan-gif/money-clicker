@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ROAD TO SPACE — 100M</title>
+<style>
+:root{--bg:#050812;--panel:rgba(7,12,24,.86);--blue:#2d8cff;--cyan:#62d9ff;--text:#eef6ff;--muted:#91a4bd}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02040a;color:var(--text);font-family:Arial,system-ui,sans-serif}
+body{touch-action:none}canvas{display:block;width:100%;height:100%;background:#02040a}
+#ui{position:fixed;inset:0;pointer-events:none}
+#brand{position:absolute;top:18px;left:22px;font-weight:900;letter-spacing:2px;font-size:13px;color:#dcecff;text-shadow:0 0 15px #218cff}
+#credit{position:absolute;bottom:10px;left:12px;font-size:10px;color:#aebbd0;letter-spacing:.3px}
+#hud{display:none;position:absolute;top:16px;right:16px;left:16px;justify-content:space-between;align-items:flex-start}
+.card{background:var(--panel);border:1px solid rgba(100,180,255,.25);box-shadow:0 10px 40px rgba(0,0,0,.35);backdrop-filter:blur(8px);border-radius:14px;padding:10px 13px}
+.money{font-weight:900;font-size:18px}.small{font-size:11px;color:var(--muted)}
+#mission{max-width:320px}.bar{height:6px;background:#172235;border-radius:99px;overflow:hidden;margin-top:7px}.fill{height:100%;width:0;background:linear-gradient(90deg,#2d8cff,#66e1ff)}
+#start,#endings{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:auto}
+.overlay{position:absolute;inset:0;background:radial-gradient(circle at 50% 55%,transparent 0,rgba(1,4,10,.15) 30%,rgba(1,3,8,.9) 100%)}
+.startBox{text-align:center;z-index:2;transform:translateY(9vh)}
+.title{font-size:clamp(38px,8vw,88px);font-weight:1000;letter-spacing:7px;line-height:.9;text-shadow:0 0 35px rgba(70,170,255,.35)}
+.sub{margin-top:16px;color:#a9bed7;letter-spacing:4px;font-size:12px}
+button{pointer-events:auto;border:0;border-radius:10px;color:white;background:linear-gradient(135deg,#1467d9,#32b8ff);padding:14px 28px;font-weight:900;letter-spacing:2px;cursor:pointer;box-shadow:0 8px 30px rgba(24,139,255,.25)}
+button.secondary{background:rgba(9,18,32,.85);border:1px solid rgba(120,190,255,.25);box-shadow:none}
+#start button{margin-top:30px;min-width:190px}
+.fade{animation:fade 1.8s ease both}.drift{animation:drift 7s ease-in-out infinite}
+@keyframes fade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes drift{0%,100%{transform:translateX(0)}50%{transform:translateX(10px)}}
+#controls{display:none;position:absolute;inset:auto 18px 22px 18px;justify-content:space-between;align-items:end}
+.pad{display:grid;grid-template-columns:58px 58px 58px;grid-template-rows:58px 58px;gap:7px;direction:ltr}
+.touch{width:58px;height:58px;border-radius:16px;background:rgba(10,22,40,.75);border:1px solid rgba(120,190,255,.25);color:white;font-size:22px;pointer-events:auto}
+#actions{display:flex;gap:9px;direction:ltr}.action{width:72px;height:72px;border-radius:50%;font-size:12px}
+#endings{display:none;background:rgba(2,5,12,.78);backdrop-filter:blur(8px)}
+.endbox{width:min(560px,90vw);text-align:center;padding:28px;border:1px solid rgba(100,190,255,.3);background:rgba(5,11,22,.94);border-radius:20px;box-shadow:0 20px 80px rgba(0,0,0,.5)}
+.endbox h2{font-size:30px;margin:0 0 10px}.endbox p{color:#b6c7da;line-height:1.8}.choice{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+@media(max-width:700px){#hud{top:9px;right:9px;left:9px}.card{padding:8px 10px}.title{letter-spacing:4px}.startBox{transform:translateY(5vh)}#controls{display:flex}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="ui">
+  <div id="brand">ROAD TO SPACE</div>
+  <div id="credit">made by 0maakaan0,atbin x zero</div>
+  <div id="hud">
+    <div class="card" id="mission"><div class="small">مأموریت فعلی</div><b id="missionText">برای شروع، حرکت کن و اولین مأموریت را پیدا کن.</b><div class="bar"><div class="fill" id="fill"></div></div></div>
+    <div class="card"><div class="small">سرمایه</div><div class="money" id="money">$0</div><div class="small">هدف: $100,000,000</div></div>
+  </div>
+  <div id="start">
+    <canvas id="scene" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
+    <div class="overlay"></div>
+    <div class="startBox fade">
+      <div class="small" style="letter-spacing:5px">A DREAM ABOVE THE CITY</div>
+      <div class="title">100M</div>
+      <div class="sub">ONE MAN · ONE SHIP · ONE WAY TO SPACE</div>
+      <button id="startBtn">START MISSION</button>
+    </div>
+  </div>
+  <div id="controls">
+    <div class="pad">
+      <span></span><button class="touch" data-key="up">▲</button><span></span>
+      <button class="touch" data-key="left">◀</button><button class="touch" data-key="down">▼</button><button class="touch" data-key="right">▶</button>
+    </div>
+    <div id="actions"><button class="touch action" data-action="work">WORK</button><button class="touch action" data-action="mission">RUN</button></div>
+  </div>
+  <div id="endings">
+    <div class="endbox">
+      <div class="small">ENDING <span id="endingNo">01</span> / 12</div>
+      <h2 id="endingTitle">...</h2>
+      <p id="endingText">...</p>
+      <div class="choice"><button id="restart">PLAY AGAIN</button><button class="secondary" id="closeEnd">BACK TO CITY</button></div>
+    </div>
+  </div>
+</div>
+<script>
+const c=document.getElementById('game'),ctx=c.getContext('2d');
+const sc=document.getElementById('scene'),sctx=sc.getContext('2d');
+let W=innerWidth,H=innerHeight,dpr=Math.min(devicePixelRatio||1,2);
+function resize(){W=innerWidth;H=innerHeight;c.width=W*dpr;c.height=H*dpr;c.style.width=W+'px';c.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);sc.width=W*dpr;sc.height=H*dpr;sctx.setTransform(dpr,0,0,dpr,0,0)}
+addEventListener('resize',resize);resize();
+
+const keys={up:false,down:false,left:false,right:false};
+let state='intro', money=0, x=0, y=0, mission=0, progress=0, time=0, dust=[];
+const missions=[
+ ['اولین درآمد','به ساختمان کار برو و یک شیفت کوتاه انجام بده.',2500],
+ ['ریسک اول','یک مأموریت سریع در شهر انجام بده.',8000],
+ ['سرمایه‌گذاری','پول را برای یک کسب‌وکار کوچک خرج کن.',18000],
+ ['قرارداد بزرگ','یک قرارداد ویژه را کامل کن.',50000],
+ ['رویای سفینه','اولین قطعه سفینه را بخر.',150000]
+];
+function moneyFmt(n){return '$'+Math.floor(n).toLocaleString('en-US')}
+function setHud(){document.getElementById('money').textContent=moneyFmt(money);document.getElementById('missionText').textContent=missions[Math.min(mission,missions.length-1)][0]+' — '+missions[Math.min(mission,missions.length-1)][1];document.getElementById('fill').style.width=Math.min(100,progress*100)+'%'}
+function seedDust(){dust=Array.from({length:90},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()*2+0.3,v:Math.random()*.7+.2,a:Math.random()}))}
+seedDust();
+
+function drawIntro(t){
+ sctx.clearRect(0,0,W,H);
+ let g=sctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#081426');g.addColorStop(.58,'#111b2b');g.addColorStop(1,'#02050a');sctx.fillStyle=g;sctx.fillRect(0,0,W,H);
+ let horizon=H*.68;
+ // city
+ for(let i=0;i<45;i++){let bw=35+((i*71)%90), bh=70+((i*37)%240), bx=(i*101)%W;sctx.fillStyle=i%3?'#0a1220':'#0e1929';sctx.fillRect(bx,horizon-bh,bw,bh);for(let yy=horizon-bh+16;yy<horizon-8;yy+=18)for(let xx=bx+8;xx<bx+bw-5;xx+=16){sctx.fillStyle='rgba(100,190,255,'+(0.08+((i+xx+yy)%4)*.03)+')';sctx.fillRect(xx,yy,5,2)}}
+ // moon/light
+ sctx.fillStyle='rgba(150,210,255,.16)';sctx.beginPath();sctx.arc(W*.76,H*.24,60,0,Math.PI*2);sctx.fill();
+ // ground
+ sctx.fillStyle='#03070d';sctx.fillRect(0,horizon,W,H-horizon);
+ // character silhouette
+ let px=W*.5,py=horizon+20+Math.sin(t*.001)*2;
+ sctx.fillStyle='#05070c';sctx.beginPath();sctx.arc(px,py-115,28,0,Math.PI*2);sctx.fill();sctx.fillRect(px-22,py-87,44,85);sctx.fillRect(px-20,py-4,14,70);sctx.fillRect(px+6,py-4,14,70);
+ // jacket highlight
+ sctx.strokeStyle='rgba(45,140,255,.55)';sctx.lineWidth=3;sctx.strokeRect(px-22,py-87,44,85);
+ // wind particles
+ for(let i=0;i<55;i++){let dx=((i*83+t*.07)% (W+200))-100;let yy=H*.35+(i*31)%H*.5;sctx.strokeStyle='rgba(170,215,255,.10)';sctx.beginPath();sctx.moveTo(dx,yy);sctx.lineTo(dx+70,yy-7);sctx.stroke()}
+}
+function introLoop(t){if(state==='intro'){drawIntro(t);requestAnimationFrame(introLoop)}} requestAnimationFrame(introLoop);
+
+function world(){
+ ctx.clearRect(0,0,W,H);
+ let sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#081527');sky.addColorStop(.62,'#172437');sky.addColorStop(1,'#050910');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+ let horizon=H*.58;
+ // distant buildings
+ for(let i=0;i<32;i++){let bw=45+((i*61)%80),bh=80+((i*43)%190),bx=((i*127-x*.15)% (W+150))-75;ctx.fillStyle=i%4===0?'#172b43':'#0e1b2c';ctx.fillRect(bx,horizon-bh,bw,bh);for(let yy=horizon-bh+14;yy<horizon-8;yy+=20)for(let xx=bx+8;xx<bx+bw-5;xx+=17){ctx.fillStyle='rgba(93,182,255,.18)';ctx.fillRect(xx,yy,5,3)}}
+ // road
+ ctx.fillStyle='#090d14';ctx.fillRect(0,horizon,W,H-horizon);ctx.strokeStyle='rgba(120,180,220,.2)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,horizon+60);ctx.lineTo(W,horizon+30);ctx.stroke();
+ for(let i=0;i<9;i++){let lx=((i*170-x*.8)% (W+220))-100;ctx.fillStyle='#1b2737';ctx.fillRect(lx,horizon+120,105,4)}
+ // buildings/mission markers
+ const spots=[{x:W*.22,label:'WORK',col:'#32b8ff'},{x:W*.5,label:'RUN',col:'#7d8cff'},{x:W*.78,label:'SHOP',col:'#55e6b0'}];
+ spots.forEach((p,i)=>{let px=p.x,py=horizon-25;ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(px,py,10+Math.sin(time/250+i)*2,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 12px Arial';ctx.textAlign='center';ctx.fillText(p.label,px,py-22)});
+ // player
+ let px=W*.5,py=horizon+55;
+ ctx.save();ctx.translate(px,py);ctx.fillStyle='#05070c';ctx.beginPath();ctx.arc(0,-55,18,0,Math.PI*2);ctx.fill();ctx.fillRect(-15,-38,30,54);ctx.fillRect(-13,16,9,42);ctx.fillRect(4,16,9,42);ctx.strokeStyle='#2d8cff';ctx.lineWidth=2;ctx.strokeRect(-15,-38,30,54);ctx.restore();
+ // dust
+ dust.forEach(d=>{d.x+=d.v; if(d.x>W+20)d.x=-20;ctx.fillStyle='rgba(180,205,225,'+d.a*.35+')';ctx.beginPath();ctx.arc(d.x,d.y,d.r,0,Math.PI*2);ctx.fill()});
+ time+=16;
+}
+function loop(){if(state==='play'){world();requestAnimationFrame(loop)}} 
+
+function doWork(){
+ if(state!=='play')return;
+ let gain=missions[Math.min(mission,missions.length-1)][2]; money+=gain;progress=Math.min(1,progress+.34);
+ if(progress>=1){progress=0;mission++;if(mission>=missions.length){mission=missions.length-1;money+=1000000}}
+ setHud();
+}
+function doMission(){
+ if(state!=='play')return;
+ money+=missions[Math.min(mission,missions.length-1)][2]*2;progress=Math.min(1,progress+.55);
+ if(progress>=1){progress=0;mission++;if(mission>=missions.length){showEnding((money%12)+1)}}
+ setHud();
+}
+function showEnding(n){
+ state='ending';document.getElementById('endings').style.display='flex';
+ const ends=[
+ ['سفینهٔ رویایی','تو ۱۰۰ میلیون دلار را جمع کردی و اولین پرتابت موفق شد. مقصد: ناشناخته.'],
+ ['میلیاردر زمینی','تو به هدف رسیدی، اما تصمیم گرفتی امپراتوری اقتصادی خودت را روی زمین بسازی.'],
+ ['خیانت در سکوت','یک شریک قدیمی همه‌چیز را تغییر داد؛ سفینه رفت، اما راز بزرگ‌تری باقی ماند.'],
+ ['پرواز اضطراری','با سرمایه‌ای کمتر از هدف، یک پرتاب خطرناک انجام دادی و وارد مدار شدی.'],
+ ['قهرمان شهر','به‌جای خرید سفینه، پروژه را عمومی کردی و شهر را وارد عصر فضایی کردی.'],
+ ['سیگنال ناشناس','در آخرین شب، سیگنالی از فضا دریافت شد. مقصد عوض شد.'],
+ ['سقوط بزرگ','ریسک‌ها جواب ندادند؛ پول از دست رفت، اما تجربه‌ای برای شروع دوباره داری.'],
+ ['سفینهٔ مخفی','یک مسیر پنهان پیدا کردی و بدون اعلام عمومی زمین را ترک کردی.'],
+ ['مأموریت ناتمام','به فضا نزدیک شدی، اما هنوز چیزی کم است. داستان ادامه دارد.'],
+ ['پیمان آسمان','یک کنسرسیوم فضایی تو را به عنوان فرمانده انتخاب کرد.'],
+ ['تنها در ستاره‌ها','سفینه سالم بود، اما هیچ‌کس انتظار نداشت مقصد این‌قدر دور باشد.'],
+ ['فراتر از ۱۰۰M','هدف فقط ۱۰۰ میلیون نبود؛ تو چیزی بسیار بزرگ‌تر از پول پیدا کردی.']
+ ];
+ let e=ends[(n-1)%12];document.getElementById('endingNo').textContent=String(n).padStart(2,'0');document.getElementById('endingTitle').textContent=e[0];document.getElementById('endingText').textContent=e[1];
+}
+document.getElementById('startBtn').onclick=()=>{state='play';document.getElementById('start').style.display='none';document.getElementById('hud').style.display='flex';setHud();requestAnimationFrame(loop)};
+document.getElementById('restart').onclick=()=>{money=0;mission=0;progress=0;document.getElementById('endings').style.display='none';state='play';setHud();requestAnimationFrame(loop)};
+document.getElementById('closeEnd').onclick=()=>{document.getElementById('endings').style.display='none';state='play';requestAnimationFrame(loop)};
+addEventListener('keydown',e=>{let k=e.key.toLowerCase();if(k==='w'||k==='arrowup')keys.up=true;if(k==='s'||k==='arrowdown')keys.down=true;if(k==='a'||k==='arrowleft')keys.left=true;if(k==='d'||k==='arrowright')keys.right=true;if(k==='e')doWork();if(k==='q')doMission()});
+addEventListener('keyup',e=>{let k=e.key.toLowerCase();if(k==='w'||k==='arrowup')keys.up=false;if(k==='s'||k==='arrowdown')keys.down=false;if(k==='a'||k==='arrowleft')keys.left=false;if(k==='d'||k==='arrowright')keys.right=false});
+document.querySelectorAll('.touch[data-key]').forEach(b=>{let k=b.dataset.key;b.addEventListener('pointerdown',()=>keys[k]=true);['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=false))});
+document.querySelector('[data-action="work"]').onclick=doWork;document.querySelector('[data-action="mission"]').onclick=doMission;
+setInterval(()=>{if(state==='play' && (keys.left||keys.right||keys.up||keys.down)){progress=Math.min(1,progress+.006); if(progress>=1){progress=0;money+=300;mission=Math.min(mission+1,missions.length-1)}setHud()}},80);
+</script>
+</body>
+</html>
